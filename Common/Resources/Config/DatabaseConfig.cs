@@ -1,5 +1,6 @@
 ﻿#region
 
+using System;
 using System.IO;
 using System.Xml.Linq;
 using Common.Utilities;
@@ -23,6 +24,6 @@ public class DatabaseConfig {
     public string DbFile { get; private set; }
 
     private static DatabaseConfig Load() {
-        return new DatabaseConfig(XElement.Parse(File.ReadAllText(ConfigFile)));
+        return new DatabaseConfig(XElement.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, ConfigFile))));
     }
 }

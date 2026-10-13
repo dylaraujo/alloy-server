@@ -27,6 +27,7 @@ internal class Program {
     private static readonly Logger Log = new(typeof(Program));
 
     private static async Task Main(string[] args) {
+        Directory.SetCurrentDirectory(AppContext.BaseDirectory);
         ThreadPool.SetMinThreads(1000, 1000);
 
         var version = Assembly.GetExecutingAssembly()

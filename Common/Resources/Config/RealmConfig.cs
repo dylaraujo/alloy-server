@@ -58,6 +58,6 @@ public class RealmConfig {
     public RealmCloseData[] Close { get; private set; }
 
     private static RealmConfig Load() {
-        return new RealmConfig(XElement.Parse(File.ReadAllText(ConfigFile)));
+        return new RealmConfig(XElement.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, ConfigFile))));
     }
 }

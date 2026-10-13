@@ -1,5 +1,6 @@
 ﻿#region
 
+using System;
 using System.IO;
 using System.Xml.Linq;
 using Common.Utilities;
@@ -29,6 +30,6 @@ public class AppEngineConfig {
     public string Address { get; private set; }
 
     private static AppEngineConfig Load() {
-        return new AppEngineConfig(XElement.Parse(File.ReadAllText(ConfigFile)));
+        return new AppEngineConfig(XElement.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, ConfigFile))));
     }
 }

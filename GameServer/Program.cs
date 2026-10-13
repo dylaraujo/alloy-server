@@ -22,6 +22,7 @@ public class Program {
     public static IAccountServerRpc AccountServerRpc { get; private set; }
     
     public static async Task Main(string[] args) {
+        Directory.SetCurrentDirectory(AppContext.BaseDirectory);
         var version = Assembly.GetExecutingAssembly()
             .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
             .InformationalVersion;

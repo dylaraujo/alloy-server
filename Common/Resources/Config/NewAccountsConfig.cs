@@ -1,5 +1,6 @@
 ﻿#region
 
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Xml.Linq;
@@ -36,7 +37,7 @@ public class NewAccountsConfig {
     public int VaultSlotCost { get; private set; }
 
     private static NewAccountsConfig Load() {
-        return new NewAccountsConfig(XElement.Parse(File.ReadAllText(ConfigFile)));
+        return new NewAccountsConfig(XElement.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, ConfigFile))));
     }
 
     public static List<ClassStats> CreateClassStats() {

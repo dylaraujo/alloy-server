@@ -1,5 +1,6 @@
 ﻿#region
 
+using System;
 using System.IO;
 using System.Xml.Linq;
 using Common.Utilities;
@@ -37,6 +38,6 @@ public class NewCharsConfig {
     public bool HasBackpack { get; private set; }
 
     private static NewCharsConfig Load() {
-        return new NewCharsConfig(XElement.Parse(File.ReadAllText(ConfigFile)));
+        return new NewCharsConfig(XElement.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, ConfigFile))));
     }
 }

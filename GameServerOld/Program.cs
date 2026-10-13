@@ -3,6 +3,7 @@
 using System;
 using System.Diagnostics;
 using System.Globalization;
+using System.IO;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
@@ -23,6 +24,7 @@ internal class Program {
     private static readonly Logger Log = new(typeof(Program));
 
     private static async Task Main(string[] args) {
+        Directory.SetCurrentDirectory(AppContext.BaseDirectory);
         ThreadPool.SetMinThreads(2000, 2000);
 
         Console.Title = $"Realm Server v{Assembly.GetExecutingAssembly().GetName().Version} - GameServer";
