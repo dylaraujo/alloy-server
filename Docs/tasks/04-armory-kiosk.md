@@ -1,6 +1,6 @@
 # Task 04: Armory Kiosk (Full Loot Access)
 
-Status: **not started**
+Status: **implemented; both projects build, not yet run in-game (Windows and macOS untested)**
 Depends on: [`02-join-menu-and-lobby-directory.md`](02-join-menu-and-lobby-directory.md)
 Design doc reference: [`TRAINER_DESIGN.md` §5.3](../TRAINER_DESIGN.md)
 Repos touched: `AlloyClient`, `alloy-server` (`GameServer`)
@@ -57,6 +57,26 @@ pillar.
   components can be reused to render each browsable entry, since they
   already know how to render an item icon + stat tooltip from an
   `ItemDesc`.
+
+## Implementation notes
+
+- `GrantItem` (packet id 67, a `ushort` item type). The server picks the slot:
+  the first *empty* equip slot (0-3) that accepts the item's `SlotType`
+  (`EntityInventory.IsEquippable`), otherwise the first empty slot in 4-19. It
+  never replaces an equipped item, so players can stock spare weapons/tomes.
+  Nothing happens if the inventory is full. A fresh `Item` is built from the
+  descriptor on every grant, so no instance data is shared. Rejected unless
+  the player is in Nexus and the item exists with a non-zero `SlotType`.
+  No DB write.
+- Content: static object `Armory Kiosk` (`0xd001`, `<Class>ArmoryKiosk</Class>`)
+  in the client's `StaticObjects.xml`, placed in `Nexus.jm` at (83, 75), two tiles
+  east of the Class Kiosk. Texture is a placeholder (Armoire sprite).
+- Client: `ArmoryKioskPanel` (via `InteractPanel`) opens `ArmoryContainer`, which
+  lists `ObjectLibrary.TypeToItem` sorted by slot type, tier, then name, with a
+  slot-type filter (`<` / `>`) and paging. Tiles are the existing preview-mode
+  `ItemTile`, which gained an `OnClicked` callback.
+- Known gap: as with the Class Kiosk, the server does not check that the player
+  is standing near the kiosk, only that they are in Nexus.
 
 ## Definition of done
 - [ ] Interacting with the Armory kiosk opens a panel listing every item
