@@ -5,6 +5,7 @@ using System.IO;
 using System.IO.Pipes;
 using System.Threading;
 using System.Threading.Tasks;
+using Common.Structs;
 using Common.Utilities;
 using StreamJsonRpc;
 
@@ -16,6 +17,7 @@ public class IpcServer {
     private static readonly Logger _log = new Logger(typeof(IpcServer));
     
     public static readonly ConcurrentDictionary<Guid, IGameServerRpc> Clients = new();
+    public static readonly ConcurrentDictionary<Guid, WorldInfo> Worlds = new();
 
     public static async Task StartAsync<THandler>(CancellationToken ct = default) where THandler : IAccountServerHandler, new() {
         _log.Info($"[RPC] Starting IpcServer at pipe '{PIPE_NAME}'...");

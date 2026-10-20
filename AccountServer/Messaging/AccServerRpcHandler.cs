@@ -1,8 +1,6 @@
 using System;
 using System.Threading.Tasks;
 using Common;
-using Common.Database;
-using Common.Database.Models;
 using Common.Game;
 using Common.Messaging;
 using Common.Structs;
@@ -24,17 +22,22 @@ public class AccServerRpcHandler : IAccountServerHandler {
 
     public void Close() {
         IpcServer.Clients.TryRemove(ServerId, out _);
-        DbClient.Accounts.UpdateMany( // Release locks acquired by this GameServer instance
-            acc => new Account { LockOwner = Guid.Empty },
-            acc => acc.LockOwner == ServerId);
+        IpcServer.Worlds.TryRemove(ServerId, out _);
     }
     
-    public Task GameServerConnected(Guid gameServerId) {
+    public Task GameServerConnected(Guid gameServerId, string name, string address, int port, int maxPlayers, bool adminOnly) {
         if (!IpcServer.Clients.TryAdd(gameServerId, _proxy))
             throw new InvalidOperationException($"Failed to add GameServer to dictionary: {gameServerId}");
         ServerId = gameServerId;
+        IpcServer.Worlds[gameServerId] = new WorldInfo(gameServerId, name, address, port, 0, maxPlayers, adminOnly);
         
-        _log.Info($"[RPC] GameServer ({gameServerId}) connected");
+        _log.Info($"[RPC] GameServer ({gameServerId}) connected as '{name}' on {address}:{port}");
+        return Task.CompletedTask;
+    }
+
+    public Task PlayerCountChanged(int playerCount) {
+        if (IpcServer.Worlds.TryGetValue(ServerId, out var world))
+            IpcServer.Worlds[ServerId] = world with { PlayerCount = playerCount };
         return Task.CompletedTask;
     }
 

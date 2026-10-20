@@ -153,6 +153,47 @@ public static class DbClient {
         return (acc, status);
     }
     
+    public static Character BuildCharacter(int charId, ushort objectType, ushort skinType) {
+        var classDesc = XmlLibrary.PlayerDescs[objectType];
+        var chr = new Character {
+            CharId = charId,
+            XpPoints = NewCharsConfig.Config.Experience,
+            Level = NewCharsConfig.Config.Level,
+            ObjectType = objectType,
+            ItemTypes = Enumerable.Repeat(-1, 20).ToArray(),
+            ItemDatas = Enumerable.Repeat((byte)0, 20).ToArray(),
+            TextureOne = (ushort)NewCharsConfig.Config.Tex1,
+            TextureTwo = (ushort)NewCharsConfig.Config.Tex2,
+            SkinType = skinType,
+            HealthPotions = NewCharsConfig.Config.HealthPotions,
+            MagicPotions = NewCharsConfig.Config.MagicPotions,
+            HasBackpack = NewCharsConfig.Config.HasBackpack,
+            Stats = new CharacterStats {
+                Hp = classDesc.Stats[StatType.MaxHP].StartValue,
+                MaxHp = classDesc.Stats[StatType.MaxHP].StartValue,
+                Mp = classDesc.Stats[StatType.MaxMP].StartValue,
+                MaxMp = classDesc.Stats[StatType.MaxMP].StartValue,
+                Attack = classDesc.Stats[StatType.Attack].StartValue,
+                Defense = classDesc.Stats[StatType.Defense].StartValue,
+                Speed = classDesc.Stats[StatType.Speed].StartValue,
+                Dexterity = classDesc.Stats[StatType.Dexterity].StartValue,
+                Vitality = classDesc.Stats[StatType.Vitality].StartValue,
+                Wisdom = classDesc.Stats[StatType.Wisdom].StartValue
+            },
+            CombatStats = new CombatStats(),
+            ExplorationStats = new ExplorationStats(),
+            KillStats = new KillStats(),
+            DungeonStats = new DungeonStats()
+        };
+        
+        for (var i = 0; i < classDesc.Equipment.Length; i++) {
+            var itemType = classDesc.Equipment[i];
+            chr.ItemTypes[i] = itemType;
+        }
+
+        return chr;
+    }
+
     public static async Task<(Character Char, CreateCharacterStatus Status)> CreateCharacterAsync(Account acc, ushort objectType, ushort skinType) {
         Character chr = null;
         var status = CreateCharacterStatus.Success;
@@ -168,43 +209,7 @@ public static class DbClient {
         }
         else // Success, create character here
         {
-            var charId = acc.NextCharId;
-            var classDesc = XmlLibrary.PlayerDescs[objectType];
-            chr = new Character {
-                CharId = charId,
-                XpPoints = NewCharsConfig.Config.Experience,
-                Level = NewCharsConfig.Config.Level,
-                ObjectType = objectType,
-                ItemTypes = Enumerable.Repeat(-1, 20).ToArray(),
-                ItemDatas = Enumerable.Repeat((byte)0, 20).ToArray(),
-                TextureOne = (ushort)NewCharsConfig.Config.Tex1,
-                TextureTwo = (ushort)NewCharsConfig.Config.Tex2,
-                SkinType = skinType,
-                HealthPotions = NewCharsConfig.Config.HealthPotions,
-                MagicPotions = NewCharsConfig.Config.MagicPotions,
-                HasBackpack = NewCharsConfig.Config.HasBackpack,
-                Stats = new CharacterStats {
-                    Hp = classDesc.Stats[StatType.MaxHP].StartValue,
-                    MaxHp = classDesc.Stats[StatType.MaxHP].StartValue,
-                    Mp = classDesc.Stats[StatType.MaxMP].StartValue,
-                    MaxMp = classDesc.Stats[StatType.MaxMP].StartValue,
-                    Attack = classDesc.Stats[StatType.Attack].StartValue,
-                    Defense = classDesc.Stats[StatType.Defense].StartValue,
-                    Speed = classDesc.Stats[StatType.Speed].StartValue,
-                    Dexterity = classDesc.Stats[StatType.Dexterity].StartValue,
-                    Vitality = classDesc.Stats[StatType.Vitality].StartValue,
-                    Wisdom = classDesc.Stats[StatType.Wisdom].StartValue
-                },
-                CombatStats = new CombatStats(),
-                ExplorationStats = new ExplorationStats(),
-                KillStats = new KillStats(),
-                DungeonStats = new DungeonStats()
-            };
-            
-            for (var i = 0; i < classDesc.Equipment.Length; i++) {
-                var itemType = classDesc.Equipment[i];
-                chr.ItemTypes[i] = itemType;
-            }
+            chr = BuildCharacter(acc.NextCharId, objectType, skinType);
 
             acc.NextCharId++;
             acc.Characters.Add(chr);

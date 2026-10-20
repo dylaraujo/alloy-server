@@ -39,10 +39,25 @@ public class RealmManager {
         SendServerProjectiles(user);
         user.StartNetwork();
         _log.Debug($"User {user.Id} connected from {user.Network.IP}");
+        PushPlayerCount();
     }
     
     public static void UserDisconnected(User user) {
         Users = Users.Remove(user.Id);
+        PushPlayerCount();
+    }
+
+    private static async void PushPlayerCount() {
+        var rpc = Program.AccountServerRpc;
+        if (rpc == null)
+            return;
+
+        try {
+            await rpc.PlayerCountChanged(Users.Count);
+        }
+        catch (Exception ex) {
+            _log.Warn($"Failed to push player count: {ex.Message}");
+        }
     }
 
     public static int GetNextWorldId() {

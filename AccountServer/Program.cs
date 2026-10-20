@@ -49,8 +49,6 @@ internal class Program {
             _ = IpcServer.StartAsync<AccServerRpcHandler>();
             DbClient.Load(DatabaseConfig.Config.DbFile);
 
-            ReleaseLocks(); // Release all account locks at startup
-
             listener.Prefixes.Add($"http://{config.Address}:{config.Port}/");
             listener.Start();
         }
@@ -77,10 +75,6 @@ internal class Program {
                 }
             });
         }
-    }
-
-    private static void ReleaseLocks() {
-        DbClient.Accounts.UpdateMany(acc => new Account { LockOwner = Guid.Empty }, acc => true);
     }
 
     private static async Task HandleRequestAsync(HttpListenerContext context) {

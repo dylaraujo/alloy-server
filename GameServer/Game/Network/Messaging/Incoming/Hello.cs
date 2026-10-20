@@ -4,8 +4,10 @@ using System.Linq;
 using System.Text;
 using Common;
 using Common.Database;
+using Common.Database.Models;
 using Common.Network;
 using Common.Resources.Config;
+using Common.Resources.Xml;
 using Common.Utilities;
 using GameServer.Game;
 using GameServer.Game.Network;
@@ -21,14 +23,12 @@ public record Hello : IIncomingPacket {
     public int GameId;
     public string MapJSON;
     public int MapJSONLength;
-    public string Password;
-    public string Username;
+    public string Name;
 
     public void Read(ref SpanReader rdr) {
         BuildVersion = rdr.ReadUTF();
         GameId = rdr.ReadInt32();
-        Username = rdr.ReadUTF();
-        Password = rdr.ReadUTF();
+        Name = rdr.ReadUTF();
         MapJSONLength = rdr.ReadInt32();
         MapJSON = Encoding.UTF8.GetString(rdr.ReadBytes(MapJSONLength));
     }
@@ -40,38 +40,21 @@ public record Hello : IIncomingPacket {
         }
         
         var acc = user.GameInfo.Account;
+        var chr = user.GameInfo.Char;
         if (user.State != ConnectionState.Reconnecting) {
-            var verify = DbClient.VerifyAccount(Username, Password, Program.Guid);
-            var status = verify.Status;
-            acc = verify.Acc;
-            if (acc == null) {
-                user.SendFailure(Failure.DEFAULT, status.GetDescription());
+            var name = Name?.Trim();
+            if (!IsValidName(name)) {
+                user.SendFailure(Failure.DEFAULT, "Invalid name.");
                 return;
             }
-            
-            if (status == VerifyStatus.AccountInUse) {
-                user.SendFailure(Failure.ACCOUNT_IN_USE, "Account in use.");
-                return;
-            }
+
+            acc = CreateSession(user, name);
+            chr = DbClient.BuildCharacter(0, GetDefaultClass(), 0);
         }
-        
-        if (acc == null) {
+
+        if (acc == null || chr == null) {
             user.SendFailure(Failure.DEFAULT, "Invalid user state.");
             return;
-        }
-        
-        if (acc.IsBanned) {
-            // Check if ban has expired
-            var bans = DbClient.Bans.Find(i => i.TargetAccId == acc.Id).ToArray();
-            if (bans.Any(b => b.Permanent) ||
-                bans.Any(b => b.ExpiresAt > DateTime.UtcNow)) // Means the ban hasn't been lifted yet
-            {
-                user.SendFailure(Failure.DEFAULT, "Account is banned.");
-                return;
-            }
-        
-            acc.IsBanned = false; // Update bool value 
-            await DbClient.FlushAsync(acc);
         }
         
         if (GameServerConfig.Config.AdminOnly && !acc.IsAdmin) {
@@ -126,5 +109,36 @@ public record Hello : IIncomingPacket {
             world.Config.AllowTeleport,
             world.Music,
             world.Config.Difficulty));
+
+        if (world.Deleted) {
+            user.SendFailure(Failure.DEFAULT, "Invalid world.");
+            return;
+        }
+
+        user.Load(chr, world);
+    }
+
+    private const int MaxNameLength = 16;
+
+    private static bool IsValidName(string name) {
+        if (string.IsNullOrEmpty(name) || name.Length > MaxNameLength)
+            return false;
+        return name.All(c => char.IsLetterOrDigit(c) || c == ' ' || c == '_' || c == '-');
+    }
+
+    private static ushort GetDefaultClass() {
+        var desc = XmlLibrary.Id2Player("Wizard") ?? XmlLibrary.PlayerDescs.Values.First();
+        return desc.ObjectType;
+    }
+
+    private static Account CreateSession(User user, string name) {
+        return new Account {
+            Id = user.Id,
+            Name = name,
+            CreatedAt = DateTime.UtcNow,
+            Stats = new AccountStats {
+                ClassStats = XmlLibrary.PlayerDescs.Keys.Select(type => new ClassStats { ObjectType = type }).ToList()
+            }
+        };
     }
 }

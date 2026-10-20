@@ -42,7 +42,6 @@ public class Program {
             CommandManager.Load();
 
             (_, AccountServerRpc) = await IpcClient.ConnectAsync(new GameServerRpcHandler(), TaskUtils.Timeout(5));
-            await AccountServerRpc.GameServerConnected(Guid);
             _log.Info($"[RPC] Connected to AccountServer. GUID: {Guid}");
             
             DbClient.Load(DatabaseConfig.Config.DbFile);
@@ -51,6 +50,8 @@ public class Program {
 
             // Start the socket server to accept and manage TCP connections
             SocketServer.Start(config.Port, config.MaxPlayers);
+
+            await AccountServerRpc.GameServerConnected(Guid, config.ServerName, config.Address, config.Port, config.MaxPlayers, config.AdminOnly);
         }
 
         GameLogic.Run(config.MsPT);

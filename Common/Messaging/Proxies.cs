@@ -18,7 +18,8 @@ public partial interface IGameServerRpc {
 [JsonRpcContract]
 [GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
 public partial interface IAccountServerRpc {
-    Task GameServerConnected(Guid gameServerId);
+    Task GameServerConnected(Guid gameServerId, string name, string address, int port, int maxPlayers, bool adminOnly);
+    Task PlayerCountChanged(int playerCount);
     Task<GameInfoDto?> GetUserInfo(string name, int accountId);
 }
 

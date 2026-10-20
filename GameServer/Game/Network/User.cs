@@ -90,7 +90,7 @@ public class User : IIdentifiable {
     }
     
     public void Unload(bool reconnect) {
-        if (reconnect && GameInfo.State != GameState.Playing) // We can only unload when we've loaded in the first place
+        if (GameInfo.State != GameState.Playing) // We can only unload when we've loaded in the first place
             return;
 
         GameInfo.Unload();

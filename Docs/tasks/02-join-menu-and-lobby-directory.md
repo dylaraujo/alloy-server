@@ -1,9 +1,9 @@
 # Task 02: Join Menu & Lobby Directory
 
-Status: **not started**
+Status: **implemented; server flow verified over raw TCP/HTTP, client builds but the Join screen itself has not been run through a GUI session yet**
 Depends on: [`01-macos-compatibility.md`](01-macos-compatibility.md)
 Design doc reference: [`TRAINER_DESIGN.md` §5.1, §5.7, §6.1, §6.1b](../TRAINER_DESIGN.md)
-Repos touched: `AlloyClient`, `alloy-server` (`AccountServer`, `GameServer`, `Common`)
+Repos touched: `TOTMGClient` (`AlloyClient`), `TOTMGServer` (`AccountServer`, `GameServer`, `Common`)
 
 ## Goal
 
@@ -67,6 +67,42 @@ Scaling the lobby list to 10 worlds is Task 08, after everything else works.
   `GameServer` reports a display name (e.g. "Training Ground 1") and
   pushes live player count on connect/disconnect, so the Join menu doesn't
   need to poll.
+
+## Implementation notes
+
+- **Ephemeral session, not a DB row.** `HELLO` builds an in-memory `Account`
+  (`Id = User.Id`, never persisted) and a `Character` via the new
+  `DbClient.BuildCharacter` factory (also used by `CreateCharacterAsync`), so
+  the rest of GameServer, which reads `GameInfo.Account`/`Char`, is untouched.
+  The default class is `Wizard` (falls back to the first loaded `PlayerDesc`).
+  Task 03 swaps this out.
+- `HELLO` now auto-spawns: after `MapInfo` the server calls `user.Load`. The
+  server `Load`/`Create` packet handlers and the client `Load`/`Create`
+  packets were deleted; reconnects (portals) reuse the session's account/char.
+- Display name rules (server + client): 1–16 chars, letters/digits/space/`_`/`-`.
+  Names are not required to be unique.
+- RPC: `GameServerConnected` now carries name/address/port/max players/admin-only
+  and is called *after* the socket server starts; new `PlayerCountChanged` is
+  pushed from `RealmManager.UserConnected/UserDisconnected`. `AccountServer`
+  keeps them in `IpcServer.Worlds` and drops the entry in `Close()`.
+- `AccountServer`: new `POST /lobby/list` (same `<Servers>` XML the old
+  `ServerListData` parsed). Deleted `Account/{Register,Verify,PurchaseCharSlot}`
+  and `Char/List`, plus the `LockOwner` cleanup in `Close()`/startup. Still
+  present and account-based (Task 07/cleanup): `Char/{Delete,Fame}`, `Guild/*`,
+  `Legends/*`.
+- Client: `JoinScreen` (name field persisted in `settings.xml`, tiles built from
+  `ServerRect`, refresh/exit buttons) replaces `TitleScreen`,
+  `ServersTitleScreen`, `CharacterListScreen`, `LoginContainer`,
+  `RegisterContainer`, `AccountOverlay`; `LoginData`/`AccountData`/
+  `CharacterListData`/`NewsData` and the local `account.xml` handling are gone.
+  A tile click joins (there is no separate "Join" button). Death and
+  disconnect return to `JoinScreen`.
+- Fixed while here: `User.Unload(false)` threw a `NullReferenceException` (and
+  killed the server) when a connection was dropped before world assignment,
+  e.g. any rejected `HELLO`.
+- Known gap: a rejected `HELLO` (bad name/version) closes the socket but the
+  `Failure` packet does not reach the client, so the client just returns to
+  the Join screen with no message.
 
 ## Definition of done
 - [ ] Launching the client shows the Join menu (name field + one world
