@@ -59,10 +59,8 @@ public struct PortalData : IEntityIdentifiable, IDisposable {
             return;
         }
 
-        if (!_worldTypes.TryGetValue(worldConfig.Name, out var worldType)) {
-            _log.Error($"World logic doesn't exist for '{worldName}' ({en.Desc.ObjectId})");
-            return;
-        }
+        if (!_worldTypes.TryGetValue(worldConfig.Name, out var worldType))
+            worldType = typeof(World);
         
         if (worldConfig.Id == 0) {
             _waveType = worldType;

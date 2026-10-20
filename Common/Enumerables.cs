@@ -154,9 +154,9 @@ public enum StatType {
     InventoryData17 = 80,
     InventoryData18 = 81,
     InventoryData19 = 82,
-    Glow = 83,
-    AltTextureIndex = 84,
-    PortalUsable = 85,
+    Unused30 = 83,
+    Unused31 = 84,
+    Unused32 = 85,
     Unused = 86,
     Unused3 = 87,
     Unused2 = 88,
@@ -197,6 +197,10 @@ public enum StatType {
     Unused27 = 123,
     Unused28 = 124,
     Unused29 = 125,
+    Unused33 = 126,
+    Glow = 127,
+    AltTextureIndex = 128,
+    PortalUsable = 129,
 
     StatTypeCount, // Don't remove this
     None = int.MaxValue

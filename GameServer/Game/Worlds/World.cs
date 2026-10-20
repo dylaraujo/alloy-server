@@ -86,7 +86,7 @@ public class World {
     public void Load(int mapId) {
         var maps = WorldLibrary.MapDatas[Config.Name];
         if (mapId == -1)
-            mapId = Random.Shared.Next(maps.Length - 1);
+            mapId = Random.Shared.Next(maps.Length);
         
         Map = new WorldMap(this, maps[mapId]);
         LoadEntities();
