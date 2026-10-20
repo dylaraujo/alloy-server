@@ -89,6 +89,23 @@ public class User : IIdentifiable {
         });
     }
     
+    public void ChangeClass(Character chr) {
+        GameLogic.Enqueue(() => {
+            if (GameInfo.State != GameState.Playing)
+                return;
+
+            var world = GameInfo.World;
+            var pos = world.EntityStats.Get(GameInfo.PlayerId).Pos;
+
+            GameInfo.Unload();
+            GameInfo.Load(chr, world, pos);
+
+            SendPacket(new CreateSuccess(
+                GameInfo.PlayerId,
+                chr.CharId));
+        });
+    }
+
     public void Unload(bool reconnect) {
         if (GameInfo.State != GameState.Playing) // We can only unload when we've loaded in the first place
             return;

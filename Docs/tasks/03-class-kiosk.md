@@ -1,6 +1,6 @@
 # Task 03: Class Kiosk (In-Nexus Class Switching)
 
-Status: **not started**
+Status: **implemented; verified manually on macOS with two clients (kiosk swap, no leftover entity, other player sees the change); Windows not tested**
 Depends on: [`02-join-menu-and-lobby-directory.md`](02-join-menu-and-lobby-directory.md)
 Design doc reference: [`TRAINER_DESIGN.md` §5.2](../TRAINER_DESIGN.md)
 Repos touched: `AlloyClient`, `alloy-server` (`GameServer`)
@@ -57,6 +57,30 @@ class's default loadout immediately.
 - "Play"/"Select" button in `ClassContainer` now sends the new
   `ChangeClass` packet instead of setting `GlobalData.CharacterType` for a
   pending character creation.
+
+## Implementation notes
+
+- **Re-enter, don't mutate.** `Entity.ObjectType` is immutable and the client
+  keys its sprite/class props off it, so `ChangeClass` (packet id 66, a `ushort`
+  class type) makes `User.ChangeClass` unload the player entity and load a fresh
+  one built by `DbClient.BuildCharacter` in the same world, same position, then
+  re-sends `CreateSuccess` with the new entity id. No reconnect, no DB write
+  (the in-memory session `Character` is just replaced).
+- Server only accepts it in Nexus (`World.NEXUS_ID`), for a valid class that
+  differs from the current one.
+- Content: new static object `Class Kiosk` (`0xd000`, `<Class>ClassKiosk`) in
+  `StaticObjects.xml`, placed in `Nexus.jm` at (81, 75) next to the spawn pad.
+  Texture is a placeholder (reuses the Armoire sprite).
+- Client: `ClassKioskPanel` (via `InteractPanel`) opens `ClassContainer(true)`,
+  whose button reads "Select" and sends `ChangeClass`. `CreateSuccess` now goes
+  through `Map.ResetLocalPlayer` so a second local player can replace the first;
+  `HudView.CreatePlayerDependentAssets` already rebuilds the HUD on that.
+- Fixed during verification: the old player entity lingered on the client after
+  a swap (the server sends no drop for it), so `Map.ResetLocalPlayer` removes it.
+  Also set a default system cursor in `Alloy.Engine/GameWindow.cs`; the cursor was
+  invisible over the window on macOS.
+- Known gap: the server does not check that the player is actually standing near
+  a kiosk, only that they are in Nexus.
 
 ## Definition of done
 - [ ] Walking up to the Class Kiosk in Nexus opens the class-select

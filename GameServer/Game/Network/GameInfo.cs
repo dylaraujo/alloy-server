@@ -39,14 +39,17 @@ public class GameInfo {
         World = world;
     }
 
-    public void Load(Character chr, World world) {
+    public void Load(Character chr, World world, WorldPosData? pos = null) {
         State = GameState.Playing;
         Char = chr;
         
         var plr = new Entity(chr.ObjectType);
         ref var newPlr = ref world.EnterPlayer(ref plr, User);
         newPlr.InitPlayer(User, world, Account, Char);
-        newPlr.MoveToSpawn(world);
+        if (pos.HasValue)
+            newPlr.Move(world, pos.Value.X, pos.Value.Y);
+        else
+            newPlr.MoveToSpawn(world);
         
         PlayerId = newPlr.Id;
     }
