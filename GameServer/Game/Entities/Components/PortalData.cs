@@ -14,6 +14,9 @@ namespace GameServer.Game.Entities.Components;
 public struct PortalData : IEntityIdentifiable, IDisposable {
     private static readonly Dictionary<string, Type> _worldTypes = [];
     private static readonly Logger _log = new(typeof(PortalData));
+    private static readonly object _waveLock = new();
+
+    public static readonly TimeSpan JoinWindow = TimeSpan.FromSeconds(60);
 
     static PortalData() {
         var asm = Assembly.GetExecutingAssembly();
@@ -32,6 +35,11 @@ public struct PortalData : IEntityIdentifiable, IDisposable {
     
     private readonly World _world;
     private World _worldLink;
+    private Type _waveType;
+    private WorldConfig _waveConfig;
+
+    public World CurrentInstance;
+    public DateTime? OpenedAt;
     
     public PortalData(World world, ref Entity en) {
         Id = en.Id;
@@ -56,11 +64,27 @@ public struct PortalData : IEntityIdentifiable, IDisposable {
             return;
         }
         
-        var worldInstance = worldConfig.Id == 0
-            ? (World)Activator.CreateInstance(worldType, worldConfig.Id, -1, worldConfig)
-            : RealmManager.Worlds[worldConfig.Id];
-        
-        Init(worldInstance);
+        if (worldConfig.Id == 0) {
+            _waveType = worldType;
+            _waveConfig = worldConfig;
+            return;
+        }
+
+        Init(RealmManager.Worlds[worldConfig.Id]);
+    }
+
+    private World GetWaveInstance() {
+        lock (_waveLock) {
+            var now = DateTime.UtcNow;
+            if (CurrentInstance == null || CurrentInstance.Deleted || now - OpenedAt.Value >= JoinWindow) {
+                var world = (World)Activator.CreateInstance(_waveType, _waveConfig.Id, -1, _waveConfig);
+                RealmManager.AddWorld(world);
+                CurrentInstance = world;
+                OpenedAt = now;
+            }
+
+            return CurrentInstance;
+        }
     }
 
     public void Init(World worldLink) {
@@ -73,12 +97,23 @@ public struct PortalData : IEntityIdentifiable, IDisposable {
     }
 
     public World GetWorldInstance(User user) {
+        if (_waveType != null)
+            return GetWaveInstance();
+
         if (_worldLink == null)
             return null;
         return _worldLink.GetInstance(user);
     }
 
     public void Tick(ref RealmTime time) {
+        ref var portalStats = ref _world.EntityStats.Get(Id);
+        portalStats.Set(StatType.PortalUsable, Disabled ? 0 : 1);
+
+        if (_waveType != null) {
+            TickWave(ref portalStats);
+            return;
+        }
+
         if (_worldLink == null)
             return;
 
@@ -92,6 +127,18 @@ public struct PortalData : IEntityIdentifiable, IDisposable {
         }
     }
     
+    private void TickWave(ref EntityStats stats) {
+        var remaining = OpenedAt.HasValue ? JoinWindow - (DateTime.UtcNow - OpenedAt.Value) : TimeSpan.Zero;
+        if (remaining <= TimeSpan.Zero) {
+            CurrentInstance = null;
+            OpenedAt = null;
+            stats.Set(StatType.Name, _waveConfig.DisplayName);
+            return;
+        }
+
+        stats.Set(StatType.Name, $"{_waveConfig.DisplayName} [{(int)Math.Ceiling(remaining.TotalSeconds)}s]");
+    }
+
     public void Dispose() {
         
     }

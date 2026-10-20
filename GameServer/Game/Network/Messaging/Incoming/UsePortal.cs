@@ -16,13 +16,16 @@ public record UsePortal : IIncomingPacket {
         if (portalData.Id == EntityId.Null)
             return;
 
+        if (portalData.Disabled) {
+            user.SendFailure(Failure.PORTAL_DISABLED, "Portal disabled.", false);
+            return;
+        }
+
         var world = portalData.GetWorldInstance(user);
         if (world == null)
             user.SendFailure(Failure.PORTAL_DISABLED, "Invalid world.", false);
         else if (world.Deleted)
             user.SendFailure(Failure.PORTAL_DISABLED, "World is deleted.", false);
-        else if (portalData.Disabled)
-            user.SendFailure(Failure.PORTAL_DISABLED, "Portal disabled.", false);
         else
             user.ReconnectTo(world);
     }

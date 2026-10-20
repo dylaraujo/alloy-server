@@ -1,6 +1,6 @@
 # Task 05: Dungeon Portals — Wave Instancing with 60s Join Timer
 
-Status: **not started**
+Status: **implemented; both projects build, not yet run in-game (Windows and macOS untested)**
 Depends on: [`02-join-menu-and-lobby-directory.md`](02-join-menu-and-lobby-directory.md)
 Design doc reference: [`TRAINER_DESIGN.md` §5.5, §6.2](../TRAINER_DESIGN.md)
 Repos touched: `AlloyClient`, `alloy-server` (`GameServer`)
@@ -70,6 +70,25 @@ everything else so far has been reusing existing mechanisms.
   would start a new one).
 - No changes needed to the "Enter" button/`UsePortal` send path itself —
   the behavior difference (join vs. new instance) is entirely server-side.
+
+## Implementation notes
+
+- `PortalData` now holds `CurrentInstance` / `OpenedAt`. Dungeon portals whose
+  world config has `Id == 0` no longer create a world at load; `GetWorldInstance`
+  creates a fresh world (and registers it with `RealmManager`) when there is no
+  instance, it was deleted, or `PortalData.JoinWindow` (60s) has elapsed.
+  Creation is under a static lock so simultaneous `UsePortal` calls share one
+  wave. Portals to fixed worlds (Id != 0) and realm portals are unchanged.
+- `UsePortal` now checks `Disabled` before resolving the instance, so a disabled
+  portal no longer spawns a world.
+- Countdown sync: the once-per-second portal tick writes the portal's `Name` stat
+  as `"Snake Pit [43s]"` while a wave is open and plain `"Snake Pit"` otherwise (so
+  it also shows over the portal). `PortalPanel` parses the bracketed seconds into
+  a "Closes in 43s" line. No new stat or packet.
+- The server never set `PortalUsable` (stat 85) before, which the client's panel
+  needs to show the Enter button; the portal tick now sets it (0 if `Disabled`).
+- Empty/expired instance cleanup (`LongLasting`) is not done; old waves stay in
+  `RealmManager.Worlds`.
 
 ## Definition of done
 - [ ] First player to use a dungeon portal creates a new instance and
